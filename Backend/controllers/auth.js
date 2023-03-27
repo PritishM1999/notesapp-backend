@@ -1,50 +1,72 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const { validationResult } = require('express-validator');
 
-const register = async (req, res) => {
-  const { email, password } = req.body;
+const createToken = (userId) => {
+  const payload = { userId };
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+  return token;
+};
 
-  // check if user already exists
-  const user = await User.findOne({ email });
-  if (user) {
-    return res.status(409).json({ message: 'User already exists' });
+const register = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
 
-  // create new user
-  const newUser = new User({ email, password });
-  // hash password before saving to database
-  const salt = await bcrypt.genSalt(10);
-  newUser.password = await bcrypt.hash(password, salt);
+  const { email, password } = req.body;
 
   try {
+    // check if user already exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(409).json({ message: 'User already exists' });
+    }
+
+    // create new user
+    const newUser = new User({ email, password });
+
+    // hash password before saving to database
+    const salt = await bcrypt.genSalt(10);
+    newUser.password = await bcrypt.hash(password, salt);
+
     await newUser.save();
-    res.status(201).json({ message: 'User created' });
+
+    const token = createToken(newUser._id);
+    res.status(201).json({ token, message: 'User created' });
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' });
+    next(error);
   }
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { email, password } = req.body;
 
-  // check if user exists
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(400).json({ message: 'User does not exist' });
+  try {
+    // check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User does not exist' });
+    }
+
+    // check if password is correct
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const token = createToken(user._id);
+    return res.status(200).json({ token, message: 'Login Sucessfull' });
+  } catch (error) {
+    next(error);
   }
-
-  // check if password is correct
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ message: 'Invalid credentials' });
-  }
-
-  // create and sign JWT token
-  const payload = { userId: user._id };
-  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-  return res.status(200).json({email, password , token, message: 'Login Sucessfull' });
 };
 
 module.exports = { register, login };
+
