@@ -7,10 +7,17 @@ const notesRoutes = require('./routes/notes');
 const setupMiddleware = require('./config/middleware');
 require('dotenv').config();
 
+// DB_URL='mongodb+srv://Pritish:Pritish@cluster0.l6mdxol.mongodb.net/?retryWrites=true&w=majority'
+JWT_SECRET="NOTESAPP"
+
 // Connect to MongoDB
-mongoose.connect(process.env.DB_URL, dbConfig.options)
+mongoose.connect("mongodb+srv://Pritish:Pritish@cluster0.l6mdxol.mongodb.net/?retryWrites=true&w=majority", {useNewUrlParser:true, useUnifiedTopology:true})
   .then(() => console.log('MongoDB Connected'))
   .catch((err) => console.log(`MongoDB Error: ${err}`));
+
+// mongoose.connect(process.env.DB_URL, dbConfig.options)
+//   .then(() => console.log('MongoDB Connected'))
+//   .catch((err) => console.log(`MongoDB Error: ${err}`));
 
 // Set up middleware
 setupMiddleware(app);
