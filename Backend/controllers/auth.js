@@ -3,9 +3,12 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const { validationResult } = require('express-validator');
 
+// Set JWT secret key (replace 'my-secret-key' with your own secret key)
+const JWT_SECRET = 'NOTESAPP';
+
 const createToken = (userId) => {
   const payload = { userId };
-  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
   return token;
 };
 
@@ -69,4 +72,3 @@ const login = async (req, res, next) => {
 };
 
 module.exports = { register, login };
-

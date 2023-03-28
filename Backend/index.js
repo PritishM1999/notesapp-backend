@@ -26,6 +26,12 @@ setupMiddleware(app);
 app.use('/auth', authRoutes);
 app.use('/notes', notesRoutes);
 
+app.use(function(err, req, res, next) {
+  res.status(500);
+  res.sendFile(path.join(__dirname, 'public', '500.html'));
+});
+
+
 // Start the server
 app.listen(5000, () => {
   console.log('Server started on port 5000');
